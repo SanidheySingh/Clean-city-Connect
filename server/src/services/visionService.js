@@ -52,6 +52,8 @@ export async function analyzeImage(imageUrl) {
     // console.log(response)
 
     if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      console.error('HF API Error Details:', JSON.stringify(errorData, null, 2));
       throw new Error(`HF API responded with ${response.status}: ${response.statusText}`);
     }
 
@@ -103,7 +105,7 @@ export async function analyzeImage(imageUrl) {
       suggestedCategory,
     };
   } catch (error) {
-    console.error('Hugging Face API error:', error.message);
+    console.error('Vision Analysis Error:', error);
     return {
       description: 'AI analysis failed – please describe manually',
       labels: [],
