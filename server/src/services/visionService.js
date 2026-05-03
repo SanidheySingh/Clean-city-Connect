@@ -37,7 +37,7 @@ export async function analyzeImage(imageUrl) {
           ],
         },
       ],
-      model: "Qwen/Qwen3.5-9B:together",
+      model: process.env.HF_MODEL || "Qwen/Qwen3.5-9B:together",
     };
 
     const response = await fetch("https://router.huggingface.co/v1/chat/completions", {

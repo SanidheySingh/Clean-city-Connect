@@ -124,19 +124,17 @@ export default function Login() {
           </p>
 
           <form onSubmit={handleSubmit} className="auth-form">
-            <div className="input-phone-group">
-              <span className="input-phone-prefix">+91</span>
-              <Input
-                label="Phone Number"
-                name="phone"
-                type="tel"
-                placeholder="98765 43210"
-                value={form.phone}
-                onChange={handleChange}
-                error={errors.phone}
-                icon={<FiPhone />}
-              />
-            </div>
+            <Input
+              label="Phone Number"
+              name="phone"
+              type="tel"
+              placeholder="98765 43210"
+              value={form.phone}
+              onChange={handleChange}
+              error={errors.phone}
+              icon={<FiPhone />}
+              prefix="+91"
+            />
 
             <div className="auth-password-wrapper">
               <Input

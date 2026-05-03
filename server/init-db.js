@@ -13,39 +13,47 @@ const __dirname = path.dirname(__filename);
 async function initDB() {
   const { Client } = pg;
   
-  const defaultClient = new Client({
-    user: process.env.PGUSER || 'postgres',
-    host: process.env.PGHOST || 'localhost',
-    database: 'postgres',
-    password: process.env.PGPASSWORD || 'postgres',
-    port: process.env.PGPORT || 5432,
-  });
+  const isCloudDB = !!process.env.DATABASE_URL;
 
-  try {
-    await defaultClient.connect();
-    const res = await defaultClient.query("SELECT datname FROM pg_catalog.pg_database WHERE datname = 'cleancity'");
-    
-    if (res.rowCount === 0) {
-      console.log('Database cleancity not found, creating it...');
-      await defaultClient.query('CREATE DATABASE cleancity');
-      console.log('Database cleancity created successfully.');
-    } else {
-      console.log('Database cleancity already exists.');
+  if (!isCloudDB) {
+    const defaultClient = new Client({
+      user: process.env.PGUSER || 'postgres',
+      host: process.env.PGHOST || 'localhost',
+      database: 'postgres',
+      password: process.env.PGPASSWORD || 'postgres',
+      port: process.env.PGPORT || 5432,
+    });
+
+    try {
+      await defaultClient.connect();
+      const res = await defaultClient.query("SELECT datname FROM pg_catalog.pg_database WHERE datname = 'cleancity'");
+      
+      if (res.rowCount === 0) {
+        console.log('Database cleancity not found, creating it...');
+        await defaultClient.query('CREATE DATABASE cleancity');
+        console.log('Database cleancity created successfully.');
+      } else {
+        console.log('Database cleancity already exists.');
+      }
+    } catch (err) {
+      console.error('Error connecting or creating database:', err);
+      process.exit(1);
+    } finally {
+      await defaultClient.end();
     }
-  } catch (err) {
-    console.error('Error connecting or creating database:', err);
-    process.exit(1);
-  } finally {
-    await defaultClient.end();
   }
 
-  const cleancityClient = new Client({
-    user: process.env.PGUSER || 'postgres',
-    host: process.env.PGHOST || 'localhost',
-    database: 'cleancity',
-    password: process.env.PGPASSWORD || 'postgres',
-    port: process.env.PGPORT || 5432,
-  });
+  const clientConfig = isCloudDB
+    ? { connectionString: process.env.DATABASE_URL, ssl: { rejectUnauthorized: false } }
+    : {
+        user: process.env.PGUSER || 'postgres',
+        host: process.env.PGHOST || 'localhost',
+        database: process.env.PGDATABASE || 'cleancity',
+        password: process.env.PGPASSWORD || 'postgres',
+        port: process.env.PGPORT || 5432,
+      };
+
+  const cleancityClient = new Client(clientConfig);
 
   try {
     await cleancityClient.connect();
@@ -92,14 +100,20 @@ async function initDB() {
     console.log('Migration complete.');
 
     // Create a default officer for testing
-    const officerPassword = await bcrypt.hash('officer123', 10);
-    console.log('Creating default officer account...');
+    const adminPasswordRaw = process.env.ADMIN_PASSWORD || 'officer123';
+    const adminPhoneRaw = process.env.ADMIN_PHONE || '+911234567890';
+    
+    if (!process.env.ADMIN_PASSWORD && isCloudDB) {
+       console.warn('⚠️ WARNING: No ADMIN_PASSWORD set. Using default officer123. PLEASE CHANGE THIS.');
+    }
+
+    const officerPassword = await bcrypt.hash(adminPasswordRaw, 10);
+    console.log(`Creating default officer account (phone: ${adminPhoneRaw})...`);
     await cleancityClient.query(`
       INSERT INTO users (name, phone, password_hash, role) 
-      VALUES ('Admin Officer', '+911234567890', $1, 'officer') 
+      VALUES ('Admin Officer', $2, $1, 'officer') 
       ON CONFLICT (phone) DO UPDATE SET password_hash = $1;
-    `, [officerPassword]);
-    console.log('Officer created (phone: +911234567890, password: officer123)');
+    `, [officerPassword, adminPhoneRaw]);
     
   } catch (err) {
     console.error('Error running schema:', err);

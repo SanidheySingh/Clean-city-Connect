@@ -11,7 +11,7 @@ import React, { forwardRef } from 'react';
  *  - All standard input props (type, placeholder, value, onChange, etc.)
  */
 const Input = forwardRef(function Input(
-  { label, error, icon, className = '', ...inputProps },
+  { label, error, icon, prefix, className = '', ...inputProps },
   ref
 ) {
   return (
@@ -21,11 +21,29 @@ const Input = forwardRef(function Input(
           {label}
         </label>
       )}
-      <div className={icon ? 'input-wrapper' : ''}>
+      <div className={icon || prefix ? 'input-wrapper' : ''}>
         {icon && <span className="input-icon">{icon}</span>}
+        {prefix && (
+          <span 
+            className="input-prefix" 
+            style={{
+              position: 'absolute', 
+              left: icon ? '2.6rem' : '1rem', 
+              top: '50%', 
+              transform: 'translateY(-50%)', 
+              color: '#64748b', 
+              pointerEvents: 'none',
+              fontWeight: '500',
+              zIndex: 2
+            }}
+          >
+            {prefix}
+          </span>
+        )}
         <input
           ref={ref}
           className={`input-field ${error ? 'input-field--error' : ''}`}
+          style={prefix ? { paddingLeft: icon ? '4.8rem' : '2.8rem' } : {}}
           {...inputProps}
         />
       </div>
